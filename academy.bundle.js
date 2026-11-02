@@ -425,9 +425,29 @@ async function requestBattleLandscape(element,screenObject=globalThis.screen){
  return {fullscreen,locked};
 }
 
+// Convert a screen pointer to the joystick's own axes, including CSS landscape rotation.
+function joystickVector(clientX,clientY,rect,rotated=false){
+ const x=rotated?(clientY-rect.top)/rect.height:(clientX-rect.left)/rect.width;
+ const y=rotated?(rect.right-clientX)/rect.width:(clientY-rect.top)/rect.height;
+ let dx=(x-.5)*2,dy=(y-.5)*2;
+ const length=Math.hypot(dx,dy);if(length>1){dx/=length;dy/=length;}
+ return {x:dx,y:dy,left:dx<-.2,right:dx>.2};
+}
+function installJoystick(surface,{isActive,isRotated,onChange,onEngage=()=>{}}){
+ let pointer=null;
+ const reset=()=>{const previous=pointer;pointer=null;surface.classList.remove('engaged');surface.style.setProperty('--stick-x','0px');surface.style.setProperty('--stick-y','0px');onChange({left:false,right:false});if(previous!==null&&surface.hasPointerCapture?.(previous))surface.releasePointerCapture(previous);};
+ const update=event=>{const vector=joystickVector(event.clientX,event.clientY,surface.getBoundingClientRect(),isRotated());const travel=surface.clientWidth*.29;surface.style.setProperty('--stick-x',`${vector.x*travel}px`);surface.style.setProperty('--stick-y',`${vector.y*travel}px`);onChange(vector);};
+ surface.addEventListener('pointerdown',event=>{event.preventDefault();if(pointer!==null||!isActive())return;pointer=event.pointerId;surface.setPointerCapture(pointer);surface.classList.add('engaged');onEngage();update(event);});
+ surface.addEventListener('pointermove',event=>{if(event.pointerId!==pointer)return;event.preventDefault();if(!isActive()){reset();return;}update(event);});
+ for(const name of ['pointerup','pointercancel','lostpointercapture'])surface.addEventListener(name,event=>{if(event.pointerId===pointer)reset();});
+ surface.addEventListener('contextmenu',event=>event.preventDefault());
+ return {reset};
+}
+
 const $=id=>document.getElementById(id);
 const atlas=new Image();atlas.src='teachers-atlas.png';
 const canvas=$('actionCanvas');let renderer=null,battle=null,mode='fighter',selected=0,last=0,noticeEnd=0,gameRAF=0,soundOn=false,audio=null,enteringDisplay=false,skillHelpWasPaused=false;
+let joystick=null;
 const input={left:false,right:false,attack:false};
 const records={fighter:0,runner:0};
 try{Object.assign(records,JSON.parse(localStorage.getItem('stellar-academy-records-v1')||'{}'));selected=Math.max(0,Math.min(5,Number(localStorage.getItem('stellar-academy-character'))||0));soundOn=localStorage.getItem('stellar-academy-sound')==='1';}catch{}
@@ -455,10 +475,10 @@ $('deploy').addEventListener('click',async()=>{
  $('deploy').disabled=false;$('deploy').textContent='确认出战 →';$('selectDialog').close();start();
 });
 function start(){
- cancelAnimationFrame(gameRAF);battle=new Battle(mode,selected);input.left=input.right=input.attack=false;$('lobby').hidden=true;document.querySelector('.nav').classList.add('playing');$('playScreen').hidden=false;document.body.classList.add('battle-active');syncBattleLayout();$('pausePanel').hidden=true;$('resultPanel').hidden=true;
+ cancelAnimationFrame(gameRAF);battle=new Battle(mode,selected);input.left=input.right=input.attack=false;joystick?.reset();$('lobby').hidden=true;document.querySelector('.nav').classList.add('playing');$('playScreen').hidden=false;document.body.classList.add('battle-active');syncBattleLayout();$('pausePanel').hidden=true;$('resultPanel').hidden=true;
  $('playMode').textContent=mode==='fighter'?'六师对决 / 实战教室':'星轨疾行 / 千米突围';$('hudName').textContent=`${TEACHERS[selected].name} · ${TEACHERS[selected].subject}`;configureAbilityIcons();theme($('hudPortrait'),TEACHERS[selected],selected);
  $('controlHint').textContent=mode==='fighter'?'A / D 移动 · 空格双段跳 · J 普攻 · K 闪避 · E 技能一 · R 技能二 · Q 终结技 · P 暂停':'自动前进 · 空格双段跳 · J 射击 · K 冲刺破障 · E 技能清场 · R 技能二 · Q 终结技 · P 暂停';
- document.querySelector('.direction-pad').style.opacity=mode==='runner'?'.25':'1';$('pauseButton').textContent='暂停 Ⅱ';updateAudioButton();renderer=new Renderer(canvas,atlas);window.scrollTo({top:0,behavior:'instant'});canvas.focus({preventScroll:true});last=performance.now();unlockAudio();enterDisplay();renderHud();gameRAF=requestAnimationFrame(frame);
+ document.querySelector('.direction-pad').style.opacity=mode==='runner'?'.35':'1';document.querySelector('.joystick-caption').textContent=mode==='runner'?'自动前进':'拖动移动';$('pauseButton').textContent='暂停 Ⅱ';updateAudioButton();renderer=new Renderer(canvas,atlas);window.scrollTo({top:0,behavior:'instant'});canvas.focus({preventScroll:true});last=performance.now();unlockAudio();enterDisplay();renderHud();gameRAF=requestAnimationFrame(frame);
 }
 function frame(now){
  if(!battle)return;let dt=Math.max(0,(now-last)/1000);last=now;dt=Math.min(.08,dt);
@@ -486,13 +506,13 @@ function renderHud(){
 
 }
 function showResult(){
- input.left=input.right=input.attack=false;const b=battle;
+ input.left=input.right=input.attack=false;joystick?.reset();const b=battle;
  $('resultKicker').textContent=b.won?'MISSION COMPLETE':'MISSION RETRY';$('resultTitle').textContent=b.won?(mode==='runner'?'千米突围，完成！':'这一课，满分收官！'):'再来一次，就会更强。';
  const value=mode==='fighter'?b.score:b.distance,previous=Number(records[mode])||0;if(value>previous){records[mode]=value;try{localStorage.setItem('stellar-academy-records-v1',JSON.stringify(records));}catch{toast('浏览器存储不可用，本次纪录未保存');}}
  $('resultStats').textContent=mode==='fighter'?`得分 ${b.score} · 击败 ${b.kills} · 最高 ${b.maxCombo} 连击${value>previous?' · 新纪录！':''}`:`距离 ${Math.floor(b.distance)}米 · 得分 ${b.score}${value>previous?' · 新纪录！':''}`;$('resultPanel').hidden=false;updateRecords();
 }
-function pause(force){if(!battle||battle.finished||$('skillDialog').open)return;battle.paused=typeof force==='boolean'?force:!battle.paused;input.left=input.right=input.attack=false;$('pausePanel').hidden=!battle.paused;$('pauseButton').textContent=battle.paused?'继续 ▶':'暂停 Ⅱ';last=performance.now();}
-function exit(){cancelAnimationFrame(gameRAF);battle=null;input.left=input.right=input.attack=false;$('playScreen').hidden=true;document.body.classList.remove('battle-active','battle-mobile','battle-rotated');releaseDisplay();$('lobby').hidden=false;document.querySelector('.nav').classList.remove('playing');$('battleNotice').classList.remove('show');updateRecords();$('games').scrollIntoView({behavior:'instant'});}
+function pause(force){if(!battle||battle.finished||$('skillDialog').open)return;battle.paused=typeof force==='boolean'?force:!battle.paused;input.left=input.right=input.attack=false;joystick?.reset();$('pausePanel').hidden=!battle.paused;$('pauseButton').textContent=battle.paused?'继续 ▶':'暂停 Ⅱ';last=performance.now();}
+function exit(){cancelAnimationFrame(gameRAF);battle=null;input.left=input.right=input.attack=false;joystick?.reset();$('playScreen').hidden=true;document.body.classList.remove('battle-active','battle-mobile','battle-rotated','battle-compact');releaseDisplay();$('lobby').hidden=false;document.querySelector('.nav').classList.remove('playing');$('battleNotice').classList.remove('show');updateRecords();$('games').scrollIntoView({behavior:'instant'});}
 $('pauseButton').addEventListener('click',()=>pause());$('continueButton').addEventListener('click',()=>{pause(false);canvas.focus({preventScroll:true});});
 for(const id of ['pauseExit','resultExit'])$(id).addEventListener('click',exit);
 $('backToLobby').addEventListener('click',()=>{if(battle&&!battle.finished)pause(true);else exit();});
@@ -518,13 +538,24 @@ for(const button of document.querySelectorAll('[data-hold],[data-action]')){
  button.addEventListener('click',e=>{if(e.detail===0&&battle)battle.action(button.dataset.action);});
  button.addEventListener('contextmenu',e=>e.preventDefault());
 }
+joystick=installJoystick($('moveJoystick'),{
+ isActive:()=>!!battle&&!battle.paused&&!battle.finished&&mode==='fighter',
+ isRotated:()=>document.body.classList.contains('battle-rotated'),
+ onChange:vector=>{input.left=vector.left;input.right=vector.right;},onEngage:unlockAudio
+});
 window.addEventListener('blur',()=>{if(battle&&!battle.finished&&!enteringDisplay)pause(true);});document.addEventListener('visibilitychange',()=>{if(document.hidden&&battle&&!battle.finished)pause(true);});
 function isMobileLayout(){return (Math.min(innerWidth,innerHeight)<=600&&Math.max(innerWidth,innerHeight)<=1100) || (matchMedia('(pointer:coarse)').matches&&Math.min(innerWidth,innerHeight)<=900);}
 function syncBattleLayout(){
  if(!battle)return;
  const {width,height}=layoutViewport(document.documentElement.clientWidth||innerWidth,document.documentElement.clientHeight||innerHeight,window.visualViewport);
  const mobile=isMobileLayout(),view=battleViewport(width,height,mobile);
- document.body.classList.toggle('battle-mobile',mobile);document.body.classList.toggle('battle-rotated',view.rotated);
+ document.body.classList.toggle('battle-compact',mobile&&view.width<680);document.body.classList.toggle('battle-mobile',mobile);document.body.classList.toggle('battle-rotated',view.rotated);
+ // Position inside the visible viewport, not the larger area behind browser toolbars.
+ const visual=window.visualViewport,normalScale=!visual||Math.abs((visual.scale||1)-1)<.02;
+ const left=normalScale?(visual?.offsetLeft||0):0,top=normalScale?(visual?.offsetTop||0):0;
+ $('playScreen').style.setProperty('--battle-left',`${left+(view.rotated?width/2:0)}px`);
+ $('playScreen').style.setProperty('--battle-top',`${top+(view.rotated?height/2:0)}px`);
+ $('playScreen').style.setProperty('--control-scale',String(Math.max(.72,Math.min(1,(view.height-82)/220))));
  $('playScreen').style.setProperty('--battle-width',`${view.width}px`);$('playScreen').style.setProperty('--battle-height',`${view.height}px`);
  requestAnimationFrame(()=>renderer?.resize());
 }
@@ -536,11 +567,11 @@ function releaseDisplay(){
  try{screen.orientation?.unlock?.();}catch{}
  try{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});}catch{}
 }
-window.addEventListener('resize',syncBattleLayout);window.visualViewport?.addEventListener('resize',syncBattleLayout);
+window.addEventListener('resize',syncBattleLayout);window.visualViewport?.addEventListener('resize',syncBattleLayout);window.visualViewport?.addEventListener('scroll',syncBattleLayout);
 // Container changes (including entering/exiting fullscreen) may settle after resize.
 if(typeof ResizeObserver!=='undefined')new ResizeObserver(()=>renderer?.resize()).observe(canvas);
 installBattleGestureGuard($('playScreen'),()=>!!battle&&!$('playScreen').hidden);
-window.addEventListener('orientationchange',()=>{if(battle){input.left=input.right=input.attack=false;syncBattleLayout();}});
+window.addEventListener('orientationchange',()=>{if(battle){input.left=input.right=input.attack=false;joystick?.reset();syncBattleLayout();}});
 document.addEventListener('fullscreenchange',()=>{syncBattleLayout();});
 $('fullscreenButton').addEventListener('click',()=>{enteringDisplay=true;requestBattleLandscape(document.documentElement).finally(()=>{enteringDisplay=false;syncBattleLayout();});});
 const skillIcons=['炼','墨','△','叶','羽','◎'];
@@ -559,7 +590,7 @@ function configureAbilityIcons(){
  }
 }
 $('skillHelpButton').addEventListener('click',()=>{
- if(!battle)return;skillHelpWasPaused=battle.paused;input.left=input.right=input.attack=false;battle.paused=true;
+ if(!battle)return;skillHelpWasPaused=battle.paused;input.left=input.right=input.attack=false;joystick?.reset();battle.paused=true;
  $('skillDialogTitle').textContent=`${battle.teacher.name} · 技能介绍`;renderAbilityIntro($('battleAbilities'),battle.teacher);$('skillDialog').showModal();
 });
 $('skillDialog').addEventListener('close',()=>{if(battle&&!battle.finished){battle.paused=skillHelpWasPaused;$('pausePanel').hidden=!battle.paused;$('pauseButton').textContent=battle.paused?'继续 ▶':'暂停 Ⅱ';last=performance.now();}});

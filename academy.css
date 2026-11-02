@@ -19,3 +19,31 @@ body.battle-mobile #skillDialog .ability-intros{grid-template-columns:1fr 1fr}bo
 
 /* Gesture policy: controls never trigger smart zoom; information pages keep scrolling. */
 button,a,input{touch-action:manipulation}#playScreen,#playScreen canvas,#playScreen button,#playScreen .action-face{touch-action:none;-webkit-touch-callout:none}#playScreen{-webkit-user-select:none;user-select:none}#skillDialog{touch-action:pan-y;overscroll-behavior:contain}
+
+/* Two-thumb combat layout. Keep the attack button inside the visible safe area. */
+body.battle-mobile #playScreen{left:var(--battle-left,0px);top:var(--battle-top,0px);right:auto;bottom:auto}
+body.battle-rotated #playScreen{left:var(--battle-left,50%);top:var(--battle-top,50%)}
+body.battle-mobile .touch-controls{left:max(24px,env(safe-area-inset-left));right:max(26px,env(safe-area-inset-right));bottom:max(22px,env(safe-area-inset-bottom));height:196px;align-items:flex-end;gap:0}
+body.battle-rotated .touch-controls{left:max(24px,env(safe-area-inset-top));right:max(26px,env(safe-area-inset-bottom));bottom:max(22px,env(safe-area-inset-left))}
+body.battle-mobile .direction-pad{display:flex;position:absolute;left:0;bottom:0;flex-direction:column;align-items:center;gap:7px;padding:0;transform:scale(var(--control-scale,1));transform-origin:bottom left;pointer-events:none}
+.move-joystick{position:relative;width:112px;height:112px;border-radius:50%;border:1px solid #a8c4df77;background:radial-gradient(circle,#48628022 30%,#0d1f36a8 72%);box-shadow:inset 0 0 0 13px #9cc6de0c,0 4px 20px #0004;pointer-events:auto;touch-action:none;-webkit-touch-callout:none}
+.joystick-axis{position:absolute;inset:0;display:grid;place-items:center;color:#9eb7cd66;font-size:27px;letter-spacing:15px;padding-left:15px;pointer-events:none}
+.joystick-knob{position:absolute;left:31px;top:31px;width:48px;height:48px;border-radius:50%;border:1px solid #c1d9e5aa;background:radial-gradient(circle at 35% 25%,#8ba8bd,#304b68 75%);box-shadow:0 3px 12px #0006;transform:translate(var(--stick-x,0px),var(--stick-y,0px));pointer-events:none}
+.move-joystick.engaged{border-color:#e4cc9b;box-shadow:inset 0 0 24px #b4d1e522,0 0 15px #8cb6d322}
+.joystick-caption{font-size:9px;color:#bccbdc;text-shadow:0 1px 4px #000}
+body.battle-mobile .action-pad{position:absolute;right:0;bottom:0;width:256px;height:196px;display:block;margin:0;transform:scale(var(--control-scale,1));transform-origin:bottom right;pointer-events:none}
+body.battle-mobile .action-pad .ability-button{position:absolute;width:58px;height:74px;margin:0;padding:0;gap:4px}
+body.battle-mobile .action-pad .action-face{width:54px;height:54px}
+body.battle-mobile .action-pad .action-caption{font-size:8px;max-width:80px}
+body.battle-mobile .action-pad [data-action=attack]{right:0;bottom:0;width:82px;height:96px}
+body.battle-mobile .action-pad [data-action=attack] .action-face{width:78px;height:78px;border-width:2px}
+body.battle-mobile .action-pad [data-action=attack] .action-icon{font-size:32px}
+body.battle-mobile .action-pad [data-action=jump]{right:96px;bottom:0}
+body.battle-mobile .action-pad [data-action=dash]{right:178px;bottom:0}
+body.battle-mobile .action-pad [data-action=skill]{right:178px;bottom:86px}
+body.battle-mobile .action-pad [data-action=skill2]{right:96px;bottom:116px}
+body.battle-mobile .action-pad [data-action=ult]{right:10px;bottom:108px}
+
+body.battle-mobile .action-pad [data-action=jump] .cd-value{inset:auto auto 2px 2px;border-radius:7px;background:#101c30dd;padding:2px 4px;font-size:11px}
+body.battle-compact .play-top>span{display:none}
+body.battle-compact .play-top>div{gap:6px}
