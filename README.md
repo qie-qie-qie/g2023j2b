@@ -24,3 +24,16 @@
 下载仓库后直接打开 index.html，无需安装。完整项目、原版快照及24组回归测试见 [full-source.zip](full-source.zip)。可编辑的动作逻辑、画面和界面模块同时公开在 combat-model.mjs、battle-renderer.mjs、academy.mjs，修改后运行 `python3 build-academy.py` 重新生成页面脚本。
 
 原合成游戏：https://github.com/qie-qie-qie/Git 。保留原仓库不变。
+
+## 手机与技能更新（2026-11-02）
+
+- 进入动作游戏后自动使用横屏布局；竖持设备采用页面旋转回退，画面和触控按钮一起旋转，横持后恢复正常横屏布局。
+- 支持的触屏浏览器会在点击出战后尝试全屏并锁定横屏；不支持时不阻塞游戏。顶部横屏按钮可手动重试。
+- 每位老师新增 R 技能：牢「催化护盾」（8秒）、C「横扫千军」（7秒）、振「坐标置换」（8秒）、只「共生护佑」（10秒）、米「疾风咏唱」（9秒）、蛋「时空减速」（9秒）。
+- E/R/K 技能图标显示实时冷却数字与扇形遮罩，Q 显示终结能量，双跳显示剩余次数。
+- 选人页展示技能效果、冷却和能量消耗；战斗顶部「技能介绍」可再次查看，查看期间暂停模拟与冷却。
+- 适配多指触控、手机安全边距和固定横屏按钮布局。
+
+方向 API 依据：[ScreenOrientation.lock](https://developer.mozilla.org/en-US/docs/Web/API/ScreenOrientation/lock)、[requestFullscreen](https://developer.mozilla.org/en-US/docs/Web/API/Element/requestFullscreen)。没有修改浏览器或操作系统的旋转设置。
+
+本轮22组动作与手机逻辑测试通过；加上原10组合成测试共32组。另在 Safari 的390×844、844×390手机尺寸预览中检查了页面横屏、技能介绍及冷却。尚未用真实 iPhone/Android 设备验证原生方向锁定。

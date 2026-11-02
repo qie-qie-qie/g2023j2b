@@ -1,8 +1,9 @@
-import {Battle,TEACHERS} from './combat-model.mjs';
+import {Battle,TEACHERS,abilityState} from './combat-model.mjs';
 import {Renderer} from './battle-renderer.mjs';
+import {battleViewport,requestBattleLandscape} from './mobile-layout.mjs';
 const $=id=>document.getElementById(id);
 const atlas=new Image();atlas.src='teachers-atlas.png';
-const canvas=$('actionCanvas');let renderer=null,battle=null,mode='fighter',selected=0,last=0,noticeEnd=0,gameRAF=0,soundOn=false,audio=null;
+const canvas=$('actionCanvas');let renderer=null,battle=null,mode='fighter',selected=0,last=0,noticeEnd=0,gameRAF=0,soundOn=false,audio=null,enteringDisplay=false,skillHelpWasPaused=false;
 const input={left:false,right:false,attack:false};
 const records={fighter:0,runner:0};
 try{Object.assign(records,JSON.parse(localStorage.getItem('stellar-academy-records-v1')||'{}'));selected=Math.max(0,Math.min(5,Number(localStorage.getItem('stellar-academy-character'))||0));soundOn=localStorage.getItem('stellar-academy-sound')==='1';}catch{}
@@ -18,10 +19,10 @@ for(const [i,t] of TEACHERS.entries()){
 }
 function updateSelection(){
  const t=TEACHERS[selected];[...$('selectGrid').children].forEach((c,i)=>{c.classList.toggle('active',i===selected);c.setAttribute('aria-pressed',String(i===selected));});
- $('selectedSubject').textContent=`${t.subject} / ${selected===0?'女':'男'}`;$('selectedName').textContent=`${t.name} · ${t.title}`;$('selectedDesc').textContent=t.desc;$('selectedSkill').textContent=t.skill;$('selectedUlt').textContent=t.ult;
+ $('selectedSubject').textContent=`${t.subject} / ${selected===0?'女':'男'}`;$('selectedName').textContent=`${t.name} · ${t.title}`;$('selectedDesc').textContent=t.desc;$('selectedSkill').textContent=t.skill;$('selectedUlt').textContent=t.ult;renderAbilityIntro($('selectionAbilities'),t);
  try{localStorage.setItem('stellar-academy-character',String(selected));}catch{}
 }
-function openSelect(nextMode){mode=nextMode;$('selectTitle').textContent=(mode==='fighter'?'六师对决':'星轨疾行')+' / 选择出战老师';$('briefing').textContent=mode==='fighter'?'任务：击败三波敌人和最终首领。A/D 移动，空格双跳，J 连续普攻，K 无敌闪避，E 学科技能，Q 满能量终结技。首领抬手时，跳跃或闪避躲开预警。':'任务：跑完1000米。角色自动前进，空格双段跳跨越断桥，K 冲刺穿透障碍，J 发射弹幕，E 清理前方障碍并释放学科异能，Q 终结技。每250米恢复生命。';updateSelection();$('selectDialog').showModal();}
+function openSelect(nextMode){mode=nextMode;$('selectTitle').textContent=(mode==='fighter'?'六师对决':'星轨疾行')+' / 选择出战老师';$('briefing').textContent=mode==='fighter'?'任务：击败三波敌人和最终首领。A/D 移动，空格双跳，J 连续普攻，K 无敌闪避，E 技能一，R 技能二，Q 满能量终结技。首领抬手时，跳跃或闪避躲开预警。':'任务：跑完1000米。角色自动前进，空格双段跳跨越断桥，K 冲刺穿透障碍，J 发射弹幕，E 清理前方障碍，R 使用第二技能，Q 终结技。每250米恢复生命。';updateSelection();$('selectDialog').showModal();}
 for(const b of document.querySelectorAll('[data-mode]'))b.addEventListener('click',()=>openSelect(b.dataset.mode));
 for(const b of document.querySelectorAll('[data-scroll]'))b.addEventListener('click',()=>$ (b.dataset.scroll).scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
 for(const b of document.querySelectorAll('[data-close]'))b.addEventListener('click',()=>b.closest('dialog').close());
@@ -30,10 +31,10 @@ $('deploy').addEventListener('click',async()=>{
  $('deploy').disabled=false;$('deploy').textContent='确认出战 →';$('selectDialog').close();start();
 });
 function start(){
- cancelAnimationFrame(gameRAF);battle=new Battle(mode,selected);input.left=input.right=input.attack=false;$('lobby').hidden=true;document.querySelector('.nav').classList.add('playing');$('playScreen').hidden=false;$('pausePanel').hidden=true;$('resultPanel').hidden=true;
- $('playMode').textContent=mode==='fighter'?'六师对决 / 实战教室':'星轨疾行 / 千米突围';$('hudName').textContent=`${TEACHERS[selected].name} · ${TEACHERS[selected].subject}`;$('skillName').textContent=TEACHERS[selected].skill;theme($('hudPortrait'),TEACHERS[selected],selected);
- $('controlHint').textContent=mode==='fighter'?'A / D 移动 · 空格双段跳 · J 普攻 · K 闪避 · E 技能 · Q 终结技 · P 暂停':'自动前进 · 空格双段跳 · J 射击 · K 冲刺破障 · E 技能清场 · Q 终结技 · P 暂停';
- document.querySelector('.direction-pad').style.opacity=mode==='runner'?'.25':'1';$('pauseButton').textContent='暂停 Ⅱ';updateAudioButton();renderer=new Renderer(canvas,atlas);window.scrollTo({top:0,behavior:'instant'});canvas.focus({preventScroll:true});last=performance.now();unlockAudio();gameRAF=requestAnimationFrame(frame);
+ cancelAnimationFrame(gameRAF);battle=new Battle(mode,selected);input.left=input.right=input.attack=false;$('lobby').hidden=true;document.querySelector('.nav').classList.add('playing');$('playScreen').hidden=false;document.body.classList.add('battle-active');syncBattleLayout();$('pausePanel').hidden=true;$('resultPanel').hidden=true;
+ $('playMode').textContent=mode==='fighter'?'六师对决 / 实战教室':'星轨疾行 / 千米突围';$('hudName').textContent=`${TEACHERS[selected].name} · ${TEACHERS[selected].subject}`;configureAbilityIcons();theme($('hudPortrait'),TEACHERS[selected],selected);
+ $('controlHint').textContent=mode==='fighter'?'A / D 移动 · 空格双段跳 · J 普攻 · K 闪避 · E 技能一 · R 技能二 · Q 终结技 · P 暂停':'自动前进 · 空格双段跳 · J 射击 · K 冲刺破障 · E 技能清场 · R 技能二 · Q 终结技 · P 暂停';
+ document.querySelector('.direction-pad').style.opacity=mode==='runner'?'.25':'1';$('pauseButton').textContent='暂停 Ⅱ';updateAudioButton();renderer=new Renderer(canvas,atlas);window.scrollTo({top:0,behavior:'instant'});canvas.focus({preventScroll:true});last=performance.now();unlockAudio();enterDisplay();renderHud();gameRAF=requestAnimationFrame(frame);
 }
 function frame(now){
  if(!battle)return;let dt=Math.max(0,(now-last)/1000);last=now;dt=Math.min(.08,dt);
@@ -49,7 +50,16 @@ function frame(now){
 }
 function renderHud(){
  const p=battle.player;$('hpFill').style.width=`${p.hp}%`;$('hpText').textContent=`${Math.ceil(p.hp)} / 100`;$('energyFill').style.width=`${p.energy}%`;$('energyText').textContent=p.energy>=100?'READY / Q':`${Math.floor(p.energy)}%`;
- $('scoreText').textContent=String(Math.floor(battle.score)).padStart(5,'0');$('waveText').textContent=mode==='fighter'?`WAVE ${String(Math.max(1,battle.wave)).padStart(2,'0')} / 03`:`${Math.floor(battle.distance)} m`;$('dashCd').textContent=p.dashCd>0?`${p.dashCd.toFixed(1)}s`:'';$('skillCd').textContent=p.skillCd>0?`${p.skillCd.toFixed(1)}s`:'';
+ $('scoreText').textContent=String(Math.floor(battle.score)).padStart(5,'0');$('waveText').textContent=mode==='fighter'?`WAVE ${String(Math.max(1,battle.wave)).padStart(2,'0')} / 03`:`${Math.floor(battle.distance)} m`;
+ for(const button of document.querySelectorAll('[data-action]')){
+  const action=button.dataset.action,state=abilityState(battle,action);
+  button.style.setProperty('--cooldown',`${Math.round((1-state.progress)*360)}deg`);
+  button.classList.toggle('cooling',state.remaining>0);button.classList.toggle('ability-ready',state.ready);button.classList.toggle('energy-pending',action==='ult'&&!state.ready);
+  button.querySelector('.cd-value').textContent=action==='ult'?state.text:state.remaining>0?state.text:action==='jump'?`${Math.max(0,2-p.jumps)}跳`:'';
+  button.setAttribute('aria-disabled',String(!state.ready));
+  button.setAttribute('aria-label',`${button.dataset.label}，${state.remaining>0?'冷却 '+state.text+' 秒':action==='ult'?state.text:state.ready?'就绪':'暂不可用'}`);
+ }
+
 }
 function showResult(){
  input.left=input.right=input.attack=false;const b=battle;
@@ -57,15 +67,15 @@ function showResult(){
  const value=mode==='fighter'?b.score:b.distance,previous=Number(records[mode])||0;if(value>previous){records[mode]=value;try{localStorage.setItem('stellar-academy-records-v1',JSON.stringify(records));}catch{toast('浏览器存储不可用，本次纪录未保存');}}
  $('resultStats').textContent=mode==='fighter'?`得分 ${b.score} · 击败 ${b.kills} · 最高 ${b.maxCombo} 连击${value>previous?' · 新纪录！':''}`:`距离 ${Math.floor(b.distance)}米 · 得分 ${b.score}${value>previous?' · 新纪录！':''}`;$('resultPanel').hidden=false;updateRecords();
 }
-function pause(force){if(!battle||battle.finished)return;battle.paused=typeof force==='boolean'?force:!battle.paused;input.left=input.right=input.attack=false;$('pausePanel').hidden=!battle.paused;$('pauseButton').textContent=battle.paused?'继续 ▶':'暂停 Ⅱ';last=performance.now();}
-function exit(){cancelAnimationFrame(gameRAF);battle=null;input.left=input.right=input.attack=false;$('playScreen').hidden=true;$('lobby').hidden=false;document.querySelector('.nav').classList.remove('playing');$('battleNotice').classList.remove('show');updateRecords();$('games').scrollIntoView({behavior:'instant'});}
+function pause(force){if(!battle||battle.finished||$('skillDialog').open)return;battle.paused=typeof force==='boolean'?force:!battle.paused;input.left=input.right=input.attack=false;$('pausePanel').hidden=!battle.paused;$('pauseButton').textContent=battle.paused?'继续 ▶':'暂停 Ⅱ';last=performance.now();}
+function exit(){cancelAnimationFrame(gameRAF);battle=null;input.left=input.right=input.attack=false;$('playScreen').hidden=true;document.body.classList.remove('battle-active','battle-mobile','battle-rotated');releaseDisplay();$('lobby').hidden=false;document.querySelector('.nav').classList.remove('playing');$('battleNotice').classList.remove('show');updateRecords();$('games').scrollIntoView({behavior:'instant'});}
 $('pauseButton').addEventListener('click',()=>pause());$('continueButton').addEventListener('click',()=>{pause(false);canvas.focus({preventScroll:true});});
 for(const id of ['pauseExit','resultExit'])$(id).addEventListener('click',exit);
 $('backToLobby').addEventListener('click',()=>{if(battle&&!battle.finished)pause(true);else exit();});
 $('retryButton').addEventListener('click',start);
-const keyMap={KeyJ:'attack',KeyK:'dash',KeyE:'skill',KeyQ:'ult',Space:'jump',ArrowUp:'jump',KeyW:'jump'};
+const keyMap={KeyJ:'attack',KeyK:'dash',KeyE:'skill',KeyR:'skill2',KeyQ:'ult',Space:'jump',ArrowUp:'jump',KeyW:'jump'};
 window.addEventListener('keydown',event=>{
- if(!battle||$('playScreen').hidden)return;
+ if(!battle||$('playScreen').hidden||$('skillDialog').open)return;
  if(['Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.code))event.preventDefault();
  if(event.code==='KeyP'||event.code==='Escape'){if(!event.repeat)pause();return;}
  if(battle.paused||battle.finished)return;
@@ -76,12 +86,56 @@ window.addEventListener('keydown',event=>{
 });
 window.addEventListener('keyup',event=>{if(event.code==='KeyA'||event.code==='ArrowLeft')input.left=false;if(event.code==='KeyD'||event.code==='ArrowRight')input.right=false;if(event.code==='KeyJ')input.attack=false;});
 for(const button of document.querySelectorAll('[data-hold],[data-action]')){
- button.addEventListener('pointerdown',e=>{e.preventDefault();if(!battle||battle.paused||battle.finished)return;button.setPointerCapture(e.pointerId);unlockAudio();if(button.dataset.hold)input[button.dataset.hold]=true;else{battle.action(button.dataset.action);if(button.dataset.action==='attack')input.attack=true;}});
- const release=()=>{if(button.dataset.hold)input[button.dataset.hold]=false;if(button.dataset.action==='attack')input.attack=false;};
+ const pointers=new Set();
+ button.addEventListener('pointerdown',e=>{e.preventDefault();if(!battle||battle.paused||battle.finished)return;pointers.add(e.pointerId);button.setPointerCapture(e.pointerId);unlockAudio();if(button.dataset.hold)input[button.dataset.hold]=true;else{battle.action(button.dataset.action);if(button.dataset.action==='attack')input.attack=true;}if(navigator.vibrate)navigator.vibrate(8);});
+ const release=e=>{pointers.delete(e.pointerId);if(pointers.size)return;if(button.dataset.hold)input[button.dataset.hold]=false;if(button.dataset.action==='attack')input.attack=false;};
  button.addEventListener('pointerup',release);button.addEventListener('pointercancel',release);button.addEventListener('lostpointercapture',release);
+ // Keyboard and assistive-technology click activation does not generate a pointerdown.
+ button.addEventListener('click',e=>{if(e.detail===0&&battle)battle.action(button.dataset.action);});
+ button.addEventListener('contextmenu',e=>e.preventDefault());
 }
-window.addEventListener('blur',()=>{if(battle&&!battle.finished)pause(true);});document.addEventListener('visibilitychange',()=>{if(document.hidden&&battle&&!battle.finished)pause(true);});
-window.addEventListener('resize',()=>{renderer?.resize();});
+window.addEventListener('blur',()=>{if(battle&&!battle.finished&&!enteringDisplay)pause(true);});document.addEventListener('visibilitychange',()=>{if(document.hidden&&battle&&!battle.finished)pause(true);});
+function isMobileLayout(){return (Math.min(innerWidth,innerHeight)<=600&&Math.max(innerWidth,innerHeight)<=1100) || (matchMedia('(pointer:coarse)').matches&&Math.min(innerWidth,innerHeight)<=900);}
+function syncBattleLayout(){
+ if(!battle)return;
+ const width=window.visualViewport?.width||innerWidth,height=window.visualViewport?.height||innerHeight;
+ const mobile=isMobileLayout(),view=battleViewport(width,height,mobile);
+ document.body.classList.toggle('battle-mobile',mobile);document.body.classList.toggle('battle-rotated',view.rotated);
+ $('playScreen').style.setProperty('--battle-width',`${view.width}px`);$('playScreen').style.setProperty('--battle-height',`${view.height}px`);
+ requestAnimationFrame(()=>renderer?.resize());
+}
+async function enterDisplay(){
+ syncBattleLayout();if(!isMobileLayout()||!matchMedia('(pointer:coarse)').matches)return;enteringDisplay=true;
+ try{await requestBattleLandscape(document.documentElement);}finally{enteringDisplay=false;syncBattleLayout();}
+}
+function releaseDisplay(){
+ try{screen.orientation?.unlock?.();}catch{}
+ try{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});}catch{}
+}
+window.addEventListener('resize',syncBattleLayout);window.visualViewport?.addEventListener('resize',syncBattleLayout);
+window.addEventListener('orientationchange',()=>{if(battle){input.left=input.right=input.attack=false;syncBattleLayout();}});
+document.addEventListener('fullscreenchange',()=>{syncBattleLayout();});
+$('fullscreenButton').addEventListener('click',()=>{enteringDisplay=true;requestBattleLandscape(document.documentElement).finally(()=>{enteringDisplay=false;syncBattleLayout();});});
+const skillIcons=['炼','墨','△','叶','羽','◎'];
+function renderAbilityIntro(container,t){
+ const baseDescriptions={field:'在前方生成2.6秒反应场，每0.4秒造成25点范围伤害。',ink:'发射可穿透敌群的墨刃，命中造成45点伤害。',prism:'向三个方向发射光刃，每枚命中造成29点伤害。',vine:'立即恢复18点生命，并用藤蔓限制范围内敌人。',feather:'召唤5枚追踪飞羽，每枚造成22点伤害。',gravity:'持续2.8秒牵引范围内的敌人，并周期造成伤害。'};
+ const rows=[['E',t.skill,'冷却 5秒',baseDescriptions[t.kind]+(mode==='runner'?' 跑酷中额外清除前方障碍并获得0.8秒保护。':'')],['R',t.skill2,`冷却 ${t.skill2Cd}秒`,t.desc2],['Q',t.ult,'消耗 100能量',`对敌群造成170点伤害，短暂无敌并清除敌方弹幕${t.id==='zhi'?'，额外恢复35点生命':''}；跑酷中清除附近障碍。`],['K','闪避冲刺','冷却 1.3秒','冲刺期间躲避伤害；跑酷中可击碎接触到的障碍。']];
+ container.replaceChildren(...rows.map(([key,name,cd,desc])=>{const row=document.createElement('article');row.className='ability-intro';row.innerHTML=`<kbd>${key}</kbd><div><h4>${name}<small>${cd}</small></h4><p>${desc}</p></div>`;return row;}));
+}
+function configureAbilityIcons(){
+ const t=TEACHERS[selected];
+ for(const button of document.querySelectorAll('[data-action]')){
+  const a=button.dataset.action,label=a==='skill'?t.skill:a==='skill2'?t.skill2:a==='ult'?t.ult:({dash:'闪避冲刺',jump:'双段跳',attack:mode==='fighter'?'普攻':'射击'})[a];
+  button.dataset.label=label;button.querySelector('.action-caption').textContent=label;
+  if(a==='skill')button.querySelector('.action-icon').textContent=skillIcons[selected];if(a==='skill2')button.querySelector('.action-icon').textContent=t.icon2;
+  button.style.setProperty('--ability-color',t.color);button.title=`${label} · ${a==='skill'?'5秒冷却':a==='skill2'?t.skill2Cd+'秒冷却':a==='ult'?'100能量':'点击释放'}`;
+ }
+}
+$('skillHelpButton').addEventListener('click',()=>{
+ if(!battle)return;skillHelpWasPaused=battle.paused;input.left=input.right=input.attack=false;battle.paused=true;
+ $('skillDialogTitle').textContent=`${battle.teacher.name} · 技能介绍`;renderAbilityIntro($('battleAbilities'),battle.teacher);$('skillDialog').showModal();
+});
+$('skillDialog').addEventListener('close',()=>{if(battle&&!battle.finished){battle.paused=skillHelpWasPaused;$('pausePanel').hidden=!battle.paused;$('pauseButton').textContent=battle.paused?'继续 ▶':'暂停 Ⅱ';last=performance.now();}});
 function updateAudioButton(){$('audioToggle').textContent=`音效 ${soundOn?'开':'关'}`;$('audioToggle').setAttribute('aria-pressed',String(soundOn));}
 function unlockAudio(){if(!soundOn)return;try{audio ||= new(window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume().catch(()=>{});}catch{}}
 function sound(type){

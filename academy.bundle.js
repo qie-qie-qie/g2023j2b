@@ -1,12 +1,12 @@
 (()=>{
 "use strict";
 const TEACHERS=[
- {id:'lao',name:'牢老师',subject:'化学',title:'紫晶炼金师',color:'#c29af1',glow:'#6c43803d',skill:'炼金爆破',ult:'元素大反应',desc:'以炼金药剂制造范围爆破，残留的反应场会持续灼烧敌人。',kind:'field',damage:25},
- {id:'c',name:'C老师',subject:'语文',title:'墨刃执笔人',color:'#e4c38b',glow:'#8b73413d',skill:'笔落惊风',ult:'一剑开篇',desc:'挥笔放出穿透墨刃。射程长，适合用连续剑气压制敌群。',kind:'ink',damage:28},
- {id:'zhen',name:'振老师',subject:'数学',title:'几何裁决者',color:'#89ccef',glow:'#3c71943d',skill:'三角裁决',ult:'无限极限',desc:'三枚几何光刃沿不同角度飞行，近身时能够打出集中爆发。',kind:'prism',damage:20},
- {id:'zhi',name:'只老师',subject:'生物',title:'森域守望者',color:'#a6d886',glow:'#507e3d3d',skill:'生命蔓延',ult:'万物复苏',desc:'藤蔓缠住附近敌人，同时恢复自身生命。适合持续作战。',kind:'vine',damage:22},
- {id:'mi',name:'米老师',subject:'英语',title:'赤羽咏唱者',color:'#e69d94',glow:'#8c49443d',skill:'飞羽序章',ult:'Final Chapter',desc:'召唤追踪飞羽，自动寻找附近敌人，让空中作战更加从容。',kind:'feather',damage:18},
- {id:'dan',name:'蛋老师',subject:'物理',title:'引力掌控者',color:'#87aef5',glow:'#3d58933d',skill:'引力坍缩',ult:'万有引力',desc:'展开引力核心，牵引附近敌人并造成伤害，聚怪后再连招。',kind:'gravity',damage:23}
+ {id:'lao',name:'牢老师',subject:'化学',title:'紫晶炼金师',color:'#c29af1',glow:'#6c43803d',skill:'炼金爆破',ult:'元素大反应',desc:'以炼金药剂制造范围爆破，残留的反应场会持续灼烧敌人。',kind:'field',skill2:'催化护盾',icon2:'盾',skill2Cd:8,desc2:'展开2秒无敌护盾，震退附近敌人并造成30点伤害。',kind2:'shield',damage:25},
+ {id:'c',name:'C老师',subject:'语文',title:'墨刃执笔人',color:'#e4c38b',glow:'#8b73413d',skill:'笔落惊风',ult:'一剑开篇',desc:'挥笔放出穿透墨刃。射程长，适合用连续剑气压制敌群。',kind:'ink',skill2:'横扫千军',icon2:'笔',skill2Cd:7,desc2:'向前突进220距离，斩击沿途敌人造成60点伤害；跑酷中转为短冲刺。',kind2:'sweep',damage:28},
+ {id:'zhen',name:'振老师',subject:'数学',title:'几何裁决者',color:'#89ccef',glow:'#3c71943d',skill:'三角裁决',ult:'无限极限',desc:'三枚几何光刃沿不同角度飞行，近身时能够打出集中爆发。',kind:'prism',skill2:'坐标置换',icon2:'△',skill2Cd:8,desc2:'闪现到前方敌人身侧并造成45点伤害；跑酷中重置双跳并向上跃起。',kind2:'blink',damage:20},
+ {id:'zhi',name:'只老师',subject:'生物',title:'森域守望者',color:'#a6d886',glow:'#507e3d3d',skill:'生命蔓延',ult:'万物复苏',desc:'藤蔓缠住附近敌人，同时恢复自身生命。适合持续作战。',kind:'vine',skill2:'共生护佑',icon2:'叶',skill2Cd:10,desc2:'4秒内每0.5秒恢复3点生命，共24点；释放瞬间获得短暂保护。',kind2:'regen',damage:22},
+ {id:'mi',name:'米老师',subject:'英语',title:'赤羽咏唱者',color:'#e69d94',glow:'#8c49443d',skill:'飞羽序章',ult:'Final Chapter',desc:'召唤追踪飞羽，自动寻找附近敌人，让空中作战更加从容。',kind:'feather',skill2:'疾风咏唱',icon2:'羽',skill2Cd:9,desc2:'4秒内提高普攻频率和移动速度；跑酷中提高射速与前进速度。',kind2:'haste',damage:18},
+ {id:'dan',name:'蛋老师',subject:'物理',title:'引力掌控者',color:'#87aef5',glow:'#3d58933d',skill:'引力坍缩',ult:'万有引力',desc:'展开引力核心，牵引附近敌人并造成伤害，聚怪后再连招。',kind:'gravity',skill2:'时空减速',icon2:'◎',skill2Cd:9,desc2:'3.2秒内让敌人的移动、出招和敌方弹幕降至35%速度，自身不受影响。',kind2:'slow',damage:23}
 ];
 const W=1280,H=720,FLOOR=575;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -14,7 +14,7 @@ const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 class Battle {
  constructor(mode='fighter',character=0,rng=Math.random){
   this.mode=mode;this.teacher=TEACHERS[character];this.character=character;this.rng=rng;this.time=0;this.score=0;this.combo=0;this.comboTime=0;this.finished=false;this.won=false;this.paused=false;
-  this.player={x:mode==='runner'?220:380,y:FLOOR,vx:0,vy:0,dir:1,hp:100,energy:20,jumps:0,onGround:true,iframe:0,dash:0,dashCd:0,attack:0,attackCd:0,attackId:0,skillCd:0,pose:0};
+  this.player={x:mode==='runner'?220:380,y:FLOOR,vx:0,vy:0,dir:1,hp:100,energy:20,jumps:0,onGround:true,iframe:0,dash:0,dashCd:0,attack:0,attackCd:0,attackId:0,skillCd:0,skill2Cd:0,haste:0,slow:0,regen:0,regenTick:0,pose:0};
   this.enemies=[];this.bullets=[];this.fields=[];this.particles=[];this.texts=[];this.events=[];this.slashes=[];this.cutIn=0;this.shake=0;this.freeze=0;this.wave=0;this.waveRest=1.8;this.spawnQueue=0;this.spawnCd=0;this.maxCombo=0;this.kills=0;this.distance=0;this.speed=330;this.travel=0;this.obstacles=[];this.pickups=[];this.segments=[{a:-1000,b:2200}];this.genX=2200;this.nextHazard=850;this.nextDrone=1700;this.checkpoint=0;this.shield=0;this.trail=[];this.notice(mode==='fighter'?'第一节课 · 准备迎战':'星轨疾行 · 1000米突围');
  }
  notice(text){this.events.push({type:'notice',text});}
@@ -24,12 +24,13 @@ class Battle {
   if(key==='jump'&&p.jumps<2){p.vy=p.jumps===0?-760:-700;p.jumps++;p.onGround=false;this.burst(p.x,p.y-8,this.teacher.color,12,130);this.events.push({type:'jump'});return true;}
   if(key==='dash'&&p.dashCd<=0){p.dash=.23;p.dashCd=1.3;p.iframe=.35;this.events.push({type:'dash'});return true;}
   if(key==='attack'&&p.attackCd<=0){
-   p.attack=.25;p.attackCd=this.mode==='runner'?.24:.28;p.attackId++;p.pose=(p.pose+1)%3;
+   p.attack=.25;p.attackCd=(this.mode==='runner'?.24:.28)*(p.haste>0?.55:1);p.attackId++;p.pose=(p.pose+1)%3;
    if(this.mode==='runner')this.projectile(p.x+35,p.y-70,1,0,17,650,'player',9);
    else this.slashes.push({x:p.x+p.dir*65,y:p.y-68,dir:p.dir,life:.22,max:.22,pose:p.pose,color:this.teacher.color});
    this.events.push({type:'attack'});return true;
   }
   if(key==='skill'&&p.skillCd<=0){p.skillCd=5;this.castSkill();this.events.push({type:'skill'});return true;}
+  if(key==='skill2'&&p.skill2Cd<=0){p.skill2Cd=this.teacher.skill2Cd;this.castSecondSkill();this.events.push({type:'skill'});return true;}
   if(key==='ult'){
    if(p.energy<100){this.notice('终结能量不足 · 命中与击败敌人可充能');return false;}
    p.energy=0;p.iframe=2.1;this.cutIn=1.35;this.shield=3;this.shake=12;
@@ -65,6 +66,31 @@ class Battle {
    this.shield=Math.max(this.shield,.8);
   }
  }
+ castSecondSkill(){
+  const p=this.player,t=this.teacher;
+  this.notice(`${t.name} · ${t.skill2}`);
+  if(t.kind2==='shield'){
+   this.shield=Math.max(this.shield,2);
+   for(const e of this.enemies)if(Math.abs(e.x-p.x)<200){this.hitEnemy(e,30);e.x=clamp(e.x+(e.x>=p.x?65:-65),45,W-45);}
+   this.fields.push({x:p.x,y:FLOOR-50,r:190,life:.8,max:.8,kind:'aura',tick:0});
+  }else if(t.kind2==='sweep'){
+   const from=p.x;if(this.mode==='fighter')p.x=clamp(p.x+p.dir*220,50,W-50);else p.dash=Math.max(p.dash,.34);
+   p.iframe=Math.max(p.iframe,.5);
+   for(const e of this.enemies)if(Math.abs(e.y-p.y)<180&&e.x>=Math.min(from,p.x)-90&&e.x<=Math.max(from,p.x)+90)this.hitEnemy(e,60);
+   for(let i=0;i<3;i++)this.slashes.push({x:from+p.dir*i*85,y:p.y-80,dir:p.dir,life:.35,max:.35,pose:i,color:t.color});
+  }else if(t.kind2==='blink'){
+   if(this.mode==='fighter'){
+    const target=this.enemies.filter(e=>!e.dead&&(e.x-p.x)*p.dir>=0).sort((a,b)=>Math.abs(a.x-p.x)-Math.abs(b.x-p.x))[0];
+    const old=p.x;p.x=clamp(target?target.x-p.dir*70:p.x+p.dir*260,50,W-50);
+    this.burst(old,p.y-80,t.color,20,240);if(target&&Math.abs(target.x-p.x)<150)this.hitEnemy(target,45);
+   }else{p.jumps=0;p.vy=-650;p.onGround=false;p.dash=Math.max(p.dash,.2);}
+   p.iframe=Math.max(p.iframe,.6);
+  }else if(t.kind2==='regen'){
+   p.regen=4;p.regenTick=.5;p.iframe=Math.max(p.iframe,.6);
+  }else if(t.kind2==='haste')p.haste=4;
+  else p.slow=3.2;
+  this.burst(p.x,p.y-70,t.color,24,230);
+ }
  projectile(x,y,dx,dy,damage,speed,owner,r=8,pierce=false){const l=Math.hypot(dx,dy)||1;const b={x,y,vx:dx/l*speed,vy:dy/l*speed,damage,owner,r,life:3,pierce,hits:new Set()};this.bullets.push(b);return b;}
  burst(x,y,color,n,speed=200){for(let i=0;i<n;i++){const a=this.rng()*Math.PI*2,v=(.3+this.rng()*.7)*speed;this.particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:.3+this.rng()*.5,max:.8,color,r:1+this.rng()*3});}if(this.particles.length>350)this.particles.splice(0,this.particles.length-350);}
  hitEnemy(e,damage){
@@ -90,12 +116,16 @@ class Battle {
   dt=Math.min(.04,Math.max(0,dt));this.time+=dt;
   const p=this.player;this.cutIn=Math.max(0,this.cutIn-dt);this.shake=Math.max(0,this.shake-dt*25);this.shield=Math.max(0,this.shield-dt);
   if(this.cutIn>0)dt*=.2;
-  for(const k of ['iframe','dash','dashCd','attack','attackCd','skillCd'])p[k]=Math.max(0,p[k]-dt);
+  for(const k of ['iframe','dash','dashCd','attack','attackCd','skillCd','skill2Cd','haste','slow'])p[k]=Math.max(0,p[k]-dt);
+  if(p.regen>0){
+   const active=Math.min(dt,p.regen);p.regen=Math.max(0,p.regen-dt);p.regenTick-=active;
+   while(p.regenTick<=1e-8){p.hp=Math.min(100,p.hp+3);p.regenTick+=.5;this.texts.push({x:p.x,y:p.y-120,text:'+3',color:'#a1eb99',life:.7});}
+  }
   this.comboTime-=dt;if(this.comboTime<=0)this.combo=0;
   if(input.attack)this.action('attack');
   const moving=(input.right?1:0)-(input.left?1:0);
   if(this.mode==='fighter'){
-   if(moving&&p.dash<=0){p.dir=moving;p.vx=moving*310;}else if(p.dash<=0)p.vx*=Math.pow(.001,dt);
+   if(moving&&p.dash<=0){p.dir=moving;p.vx=moving*310*(p.haste>0?1.3:1);}else if(p.dash<=0)p.vx*=Math.pow(.001,dt);
    if(p.dash>0)p.vx=p.dir*1080;
    p.x=clamp(p.x+p.vx*dt,50,W-50);this.updateFighter(dt);
   }else this.updateRunner(dt,input);
@@ -114,7 +144,7 @@ class Battle {
   this.enemies=this.enemies.filter(e=>!e.dead);
  }
  updateFighter(dt){
-  const p=this.player;
+  const p=this.player,enemyDt=dt*(p.slow>0?.35:1);
   if(this.enemies.filter(e=>!e.dead).length===0&&this.spawnQueue===0){
    this.waveRest-=dt;
    if(this.waveRest<=0){
@@ -130,7 +160,7 @@ class Battle {
    if(p.attack>.05&&e.hitBy!==p.attackId&&Math.abs(e.x-p.x)<145&&Math.abs(e.y-p.y)<145&&(e.x-p.x)*p.dir>-30){e.hitBy=p.attackId;this.hitEnemy(e,16+p.pose*4);}
    if(e.stun>0)continue;
    if(e.wind>0){
-    e.wind-=dt;
+    e.wind-=enemyDt;
     if(e.wind<=0){
      if(e.boss){
       if(e.attackKind%2===0){for(let i=-2;i<=2;i++)this.projectile(e.x,e.y-75,e.dir,i*.15,14,330,'enemy',12);}
@@ -141,15 +171,15 @@ class Battle {
     }
    }else{
     const desired=e.boss?230:e.type==='ranged'?390:65;
-    if(Math.abs(e.x-p.x)>desired)e.x+=e.dir*e.speed*dt;
-    e.timer-=dt;
+    if(Math.abs(e.x-p.x)>desired)e.x+=e.dir*e.speed*enemyDt;
+    e.timer-=enemyDt;
     if(e.timer<=0&&(e.boss||e.type==='ranged'||Math.abs(e.x-p.x)<100)){e.wind=e.boss?.9:.5;e.targetX=p.x;}
    }
    e.x=clamp(e.x,45,W-45);
   }
  }
  updateRunner(dt,input){
-  const p=this.player;this.speed=Math.min(530,330+this.distance*.17);const speed=this.speed+(p.dash>0?430:0);
+  const p=this.player;this.speed=Math.min(530,330+this.distance*.17);const speed=this.speed*(p.haste>0?1.2:1)+(p.dash>0?430:0);
   this.travel+=speed*dt;this.distance=this.travel/12;p.dir=1;p.vx=speed;
   // World generation uses independent solid intervals; gaps remain jumpable at all speeds.
   while(this.genX<this.travel+W+1600){
@@ -166,7 +196,7 @@ class Battle {
    this.enemies.push({x:W+90,y:FLOOR-100-this.rng()*90,hp:55,maxHp:55,dead:false,type:'drone',boss:false,dir:-1,timer:1.7,wind:0,flash:0,stun:0,hitBy:-1});this.nextDrone+=1500+this.rng()*900;
   }
   for(const e of this.enemies){
-   e.x-=speed*dt;e.flash=Math.max(0,e.flash-dt);e.timer-=dt;
+   e.x-=speed*dt;e.flash=Math.max(0,e.flash-dt);e.timer-=dt*(p.slow>0?.35:1);
    if(e.timer<0&&e.x>p.x+160){this.projectile(e.x,e.y-30,-1,0,10,260,'enemy',10);e.timer=2;}
    if(dist({x:p.x,y:p.y-50},{x:e.x,y:e.y-40})<70){if(p.dash>0||this.shield>0)this.hitEnemy(e,100);else this.hurt(12);}
    if(e.x<-100)e.dead=true;
@@ -190,7 +220,7 @@ class Battle {
   const p=this.player;
   for(const b of this.bullets){
    if(b.homing){const target=this.enemies.filter(e=>!e.dead).sort((a,c)=>dist(a,b)-dist(c,b))[0];if(target){const dx=target.x-b.x,dy=target.y-60-b.y,l=Math.hypot(dx,dy)||1;b.vx+= (dx/l*600-b.vx)*dt*6;b.vy+=(dy/l*600-b.vy)*dt*6;}}
-   b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;
+   const flightDt=dt*(b.owner==='enemy'&&p.slow>0?.35:1);b.x+=b.vx*flightDt;b.y+=b.vy*flightDt;b.life-=flightDt;
    if(b.owner==='enemy'){
     if(Math.abs(b.x-p.x)<b.r+23&&Math.abs(b.y-(p.y-60))<b.r+50){this.hurt(b.damage);b.life=0;}
    }else{
@@ -203,7 +233,7 @@ class Battle {
  updateFields(dt){
   for(const f of this.fields){
    f.life-=dt;f.tick-=dt;
-   if(f.kind==='enemy'||f.kind==='ultimate')continue;
+   if(['enemy','ultimate','aura'].includes(f.kind))continue;
    for(const e of this.enemies){if(e.dead||Math.abs(e.x-f.x)>f.r)continue;
     if(f.kind==='gravity')e.x+=(f.x-e.x)*dt*2.5;
     if(f.kind==='vine')e.stun=Math.max(e.stun,.1);
@@ -212,6 +242,16 @@ class Battle {
   }
   this.fields=this.fields.filter(f=>f.life>0);
  }
+}
+
+// Shared by visible icon controls and regression tests; cooldown numbers never round down to a false ready state.
+function abilityState(battle,action){
+ const p=battle.player,t=battle.teacher;
+ if(action==='jump')return {remaining:0,total:0,progress:1,ready:p.jumps<2&&!battle.paused&&!battle.finished,text:`${Math.max(0,2-p.jumps)}跳`};
+ const cd={attack:[p.attackCd,p.haste>0?.16:.28],dash:[p.dashCd,1.3],skill:[p.skillCd,5],skill2:[p.skill2Cd,t.skill2Cd]};
+ if(action==='ult')return {remaining:0,total:100,progress:p.energy/100,ready:p.energy>=100&&!battle.paused&&!battle.finished,text:p.energy>=100?'就绪':`${Math.floor(p.energy)}%`};
+ const [remaining,total]=cd[action]||[0,0];
+ return {remaining,total,progress:total?Math.max(0,1-remaining/total):1,ready:remaining<=0&&!battle.paused&&!battle.finished,text:remaining>0?`${(Math.ceil(remaining*10)/10).toFixed(1)}`:'就绪'};
 }
 
 const TAU=Math.PI*2;
@@ -234,6 +274,10 @@ class Renderer {
    this.character(b.character,p.x,p.y,p.dir,b.time,p.onGround?Math.abs(p.vx):0,p.attack>0);
   }
   if(b.shield>0){c.save();c.strokeStyle=b.teacher.color;c.lineWidth=2;c.globalAlpha=.5;this.glow(b.teacher.color,20);c.beginPath();c.ellipse(p.x,p.y-83,57,102,0,0,TAU);c.stroke();c.restore();}
+  if(p.haste>0||p.slow>0||p.regen>0){
+   c.save();c.globalAlpha=.6;c.strokeStyle=b.teacher.color;this.glow(b.teacher.color,18);c.lineWidth=2;c.beginPath();c.ellipse(p.x,p.y-75,60+Math.sin(b.time*7)*5,98,0,0,TAU);c.stroke();c.font='12px system-ui';c.textAlign='center';c.fillStyle=b.teacher.color;
+   const label=p.haste>0?`疾风 ${p.haste.toFixed(1)}s`:p.slow>0?`时缓 ${p.slow.toFixed(1)}s`:`共生 ${p.regen.toFixed(1)}s`;c.fillText(label,p.x,p.y-220);c.restore();
+  }
   for(const s of b.slashes)this.slash(s);
   for(const bullet of b.bullets)this.bullet(bullet,b);
   if(b.particles.length&&!this.reduced)for(const a of b.particles){c.globalAlpha=Math.min(1,a.life*2);c.fillStyle=a.color;c.beginPath();c.arc(a.x,a.y,a.r,0,TAU);c.fill();}
@@ -332,9 +376,21 @@ class Renderer {
  }
 }
 
+// CSS rotation is the fallback when a browser cannot lock the device orientation.
+function battleViewport(width,height,mobile){
+ const rotated=mobile&&height>width;
+ return {rotated,width:rotated?height:width,height:rotated?width:height};
+}
+async function requestBattleLandscape(element,screenObject=globalThis.screen){
+ let fullscreen=false,locked=false;
+ try{if(!document.fullscreenElement&&element.requestFullscreen){await element.requestFullscreen({navigationUI:'hide'});fullscreen=true;}else fullscreen=!!document.fullscreenElement;}catch{}
+ try{if(screenObject?.orientation?.lock){await screenObject.orientation.lock('landscape');locked=true;}}catch{}
+ return {fullscreen,locked};
+}
+
 const $=id=>document.getElementById(id);
 const atlas=new Image();atlas.src='teachers-atlas.png';
-const canvas=$('actionCanvas');let renderer=null,battle=null,mode='fighter',selected=0,last=0,noticeEnd=0,gameRAF=0,soundOn=false,audio=null;
+const canvas=$('actionCanvas');let renderer=null,battle=null,mode='fighter',selected=0,last=0,noticeEnd=0,gameRAF=0,soundOn=false,audio=null,enteringDisplay=false,skillHelpWasPaused=false;
 const input={left:false,right:false,attack:false};
 const records={fighter:0,runner:0};
 try{Object.assign(records,JSON.parse(localStorage.getItem('stellar-academy-records-v1')||'{}'));selected=Math.max(0,Math.min(5,Number(localStorage.getItem('stellar-academy-character'))||0));soundOn=localStorage.getItem('stellar-academy-sound')==='1';}catch{}
@@ -350,10 +406,10 @@ for(const [i,t] of TEACHERS.entries()){
 }
 function updateSelection(){
  const t=TEACHERS[selected];[...$('selectGrid').children].forEach((c,i)=>{c.classList.toggle('active',i===selected);c.setAttribute('aria-pressed',String(i===selected));});
- $('selectedSubject').textContent=`${t.subject} / ${selected===0?'女':'男'}`;$('selectedName').textContent=`${t.name} · ${t.title}`;$('selectedDesc').textContent=t.desc;$('selectedSkill').textContent=t.skill;$('selectedUlt').textContent=t.ult;
+ $('selectedSubject').textContent=`${t.subject} / ${selected===0?'女':'男'}`;$('selectedName').textContent=`${t.name} · ${t.title}`;$('selectedDesc').textContent=t.desc;$('selectedSkill').textContent=t.skill;$('selectedUlt').textContent=t.ult;renderAbilityIntro($('selectionAbilities'),t);
  try{localStorage.setItem('stellar-academy-character',String(selected));}catch{}
 }
-function openSelect(nextMode){mode=nextMode;$('selectTitle').textContent=(mode==='fighter'?'六师对决':'星轨疾行')+' / 选择出战老师';$('briefing').textContent=mode==='fighter'?'任务：击败三波敌人和最终首领。A/D 移动，空格双跳，J 连续普攻，K 无敌闪避，E 学科技能，Q 满能量终结技。首领抬手时，跳跃或闪避躲开预警。':'任务：跑完1000米。角色自动前进，空格双段跳跨越断桥，K 冲刺穿透障碍，J 发射弹幕，E 清理前方障碍并释放学科异能，Q 终结技。每250米恢复生命。';updateSelection();$('selectDialog').showModal();}
+function openSelect(nextMode){mode=nextMode;$('selectTitle').textContent=(mode==='fighter'?'六师对决':'星轨疾行')+' / 选择出战老师';$('briefing').textContent=mode==='fighter'?'任务：击败三波敌人和最终首领。A/D 移动，空格双跳，J 连续普攻，K 无敌闪避，E 技能一，R 技能二，Q 满能量终结技。首领抬手时，跳跃或闪避躲开预警。':'任务：跑完1000米。角色自动前进，空格双段跳跨越断桥，K 冲刺穿透障碍，J 发射弹幕，E 清理前方障碍，R 使用第二技能，Q 终结技。每250米恢复生命。';updateSelection();$('selectDialog').showModal();}
 for(const b of document.querySelectorAll('[data-mode]'))b.addEventListener('click',()=>openSelect(b.dataset.mode));
 for(const b of document.querySelectorAll('[data-scroll]'))b.addEventListener('click',()=>$ (b.dataset.scroll).scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
 for(const b of document.querySelectorAll('[data-close]'))b.addEventListener('click',()=>b.closest('dialog').close());
@@ -362,10 +418,10 @@ $('deploy').addEventListener('click',async()=>{
  $('deploy').disabled=false;$('deploy').textContent='确认出战 →';$('selectDialog').close();start();
 });
 function start(){
- cancelAnimationFrame(gameRAF);battle=new Battle(mode,selected);input.left=input.right=input.attack=false;$('lobby').hidden=true;document.querySelector('.nav').classList.add('playing');$('playScreen').hidden=false;$('pausePanel').hidden=true;$('resultPanel').hidden=true;
- $('playMode').textContent=mode==='fighter'?'六师对决 / 实战教室':'星轨疾行 / 千米突围';$('hudName').textContent=`${TEACHERS[selected].name} · ${TEACHERS[selected].subject}`;$('skillName').textContent=TEACHERS[selected].skill;theme($('hudPortrait'),TEACHERS[selected],selected);
- $('controlHint').textContent=mode==='fighter'?'A / D 移动 · 空格双段跳 · J 普攻 · K 闪避 · E 技能 · Q 终结技 · P 暂停':'自动前进 · 空格双段跳 · J 射击 · K 冲刺破障 · E 技能清场 · Q 终结技 · P 暂停';
- document.querySelector('.direction-pad').style.opacity=mode==='runner'?'.25':'1';$('pauseButton').textContent='暂停 Ⅱ';updateAudioButton();renderer=new Renderer(canvas,atlas);window.scrollTo({top:0,behavior:'instant'});canvas.focus({preventScroll:true});last=performance.now();unlockAudio();gameRAF=requestAnimationFrame(frame);
+ cancelAnimationFrame(gameRAF);battle=new Battle(mode,selected);input.left=input.right=input.attack=false;$('lobby').hidden=true;document.querySelector('.nav').classList.add('playing');$('playScreen').hidden=false;document.body.classList.add('battle-active');syncBattleLayout();$('pausePanel').hidden=true;$('resultPanel').hidden=true;
+ $('playMode').textContent=mode==='fighter'?'六师对决 / 实战教室':'星轨疾行 / 千米突围';$('hudName').textContent=`${TEACHERS[selected].name} · ${TEACHERS[selected].subject}`;configureAbilityIcons();theme($('hudPortrait'),TEACHERS[selected],selected);
+ $('controlHint').textContent=mode==='fighter'?'A / D 移动 · 空格双段跳 · J 普攻 · K 闪避 · E 技能一 · R 技能二 · Q 终结技 · P 暂停':'自动前进 · 空格双段跳 · J 射击 · K 冲刺破障 · E 技能清场 · R 技能二 · Q 终结技 · P 暂停';
+ document.querySelector('.direction-pad').style.opacity=mode==='runner'?'.25':'1';$('pauseButton').textContent='暂停 Ⅱ';updateAudioButton();renderer=new Renderer(canvas,atlas);window.scrollTo({top:0,behavior:'instant'});canvas.focus({preventScroll:true});last=performance.now();unlockAudio();enterDisplay();renderHud();gameRAF=requestAnimationFrame(frame);
 }
 function frame(now){
  if(!battle)return;let dt=Math.max(0,(now-last)/1000);last=now;dt=Math.min(.08,dt);
@@ -381,7 +437,16 @@ function frame(now){
 }
 function renderHud(){
  const p=battle.player;$('hpFill').style.width=`${p.hp}%`;$('hpText').textContent=`${Math.ceil(p.hp)} / 100`;$('energyFill').style.width=`${p.energy}%`;$('energyText').textContent=p.energy>=100?'READY / Q':`${Math.floor(p.energy)}%`;
- $('scoreText').textContent=String(Math.floor(battle.score)).padStart(5,'0');$('waveText').textContent=mode==='fighter'?`WAVE ${String(Math.max(1,battle.wave)).padStart(2,'0')} / 03`:`${Math.floor(battle.distance)} m`;$('dashCd').textContent=p.dashCd>0?`${p.dashCd.toFixed(1)}s`:'';$('skillCd').textContent=p.skillCd>0?`${p.skillCd.toFixed(1)}s`:'';
+ $('scoreText').textContent=String(Math.floor(battle.score)).padStart(5,'0');$('waveText').textContent=mode==='fighter'?`WAVE ${String(Math.max(1,battle.wave)).padStart(2,'0')} / 03`:`${Math.floor(battle.distance)} m`;
+ for(const button of document.querySelectorAll('[data-action]')){
+  const action=button.dataset.action,state=abilityState(battle,action);
+  button.style.setProperty('--cooldown',`${Math.round((1-state.progress)*360)}deg`);
+  button.classList.toggle('cooling',state.remaining>0);button.classList.toggle('ability-ready',state.ready);button.classList.toggle('energy-pending',action==='ult'&&!state.ready);
+  button.querySelector('.cd-value').textContent=action==='ult'?state.text:state.remaining>0?state.text:action==='jump'?`${Math.max(0,2-p.jumps)}跳`:'';
+  button.setAttribute('aria-disabled',String(!state.ready));
+  button.setAttribute('aria-label',`${button.dataset.label}，${state.remaining>0?'冷却 '+state.text+' 秒':action==='ult'?state.text:state.ready?'就绪':'暂不可用'}`);
+ }
+
 }
 function showResult(){
  input.left=input.right=input.attack=false;const b=battle;
@@ -389,15 +454,15 @@ function showResult(){
  const value=mode==='fighter'?b.score:b.distance,previous=Number(records[mode])||0;if(value>previous){records[mode]=value;try{localStorage.setItem('stellar-academy-records-v1',JSON.stringify(records));}catch{toast('浏览器存储不可用，本次纪录未保存');}}
  $('resultStats').textContent=mode==='fighter'?`得分 ${b.score} · 击败 ${b.kills} · 最高 ${b.maxCombo} 连击${value>previous?' · 新纪录！':''}`:`距离 ${Math.floor(b.distance)}米 · 得分 ${b.score}${value>previous?' · 新纪录！':''}`;$('resultPanel').hidden=false;updateRecords();
 }
-function pause(force){if(!battle||battle.finished)return;battle.paused=typeof force==='boolean'?force:!battle.paused;input.left=input.right=input.attack=false;$('pausePanel').hidden=!battle.paused;$('pauseButton').textContent=battle.paused?'继续 ▶':'暂停 Ⅱ';last=performance.now();}
-function exit(){cancelAnimationFrame(gameRAF);battle=null;input.left=input.right=input.attack=false;$('playScreen').hidden=true;$('lobby').hidden=false;document.querySelector('.nav').classList.remove('playing');$('battleNotice').classList.remove('show');updateRecords();$('games').scrollIntoView({behavior:'instant'});}
+function pause(force){if(!battle||battle.finished||$('skillDialog').open)return;battle.paused=typeof force==='boolean'?force:!battle.paused;input.left=input.right=input.attack=false;$('pausePanel').hidden=!battle.paused;$('pauseButton').textContent=battle.paused?'继续 ▶':'暂停 Ⅱ';last=performance.now();}
+function exit(){cancelAnimationFrame(gameRAF);battle=null;input.left=input.right=input.attack=false;$('playScreen').hidden=true;document.body.classList.remove('battle-active','battle-mobile','battle-rotated');releaseDisplay();$('lobby').hidden=false;document.querySelector('.nav').classList.remove('playing');$('battleNotice').classList.remove('show');updateRecords();$('games').scrollIntoView({behavior:'instant'});}
 $('pauseButton').addEventListener('click',()=>pause());$('continueButton').addEventListener('click',()=>{pause(false);canvas.focus({preventScroll:true});});
 for(const id of ['pauseExit','resultExit'])$(id).addEventListener('click',exit);
 $('backToLobby').addEventListener('click',()=>{if(battle&&!battle.finished)pause(true);else exit();});
 $('retryButton').addEventListener('click',start);
-const keyMap={KeyJ:'attack',KeyK:'dash',KeyE:'skill',KeyQ:'ult',Space:'jump',ArrowUp:'jump',KeyW:'jump'};
+const keyMap={KeyJ:'attack',KeyK:'dash',KeyE:'skill',KeyR:'skill2',KeyQ:'ult',Space:'jump',ArrowUp:'jump',KeyW:'jump'};
 window.addEventListener('keydown',event=>{
- if(!battle||$('playScreen').hidden)return;
+ if(!battle||$('playScreen').hidden||$('skillDialog').open)return;
  if(['Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.code))event.preventDefault();
  if(event.code==='KeyP'||event.code==='Escape'){if(!event.repeat)pause();return;}
  if(battle.paused||battle.finished)return;
@@ -408,12 +473,56 @@ window.addEventListener('keydown',event=>{
 });
 window.addEventListener('keyup',event=>{if(event.code==='KeyA'||event.code==='ArrowLeft')input.left=false;if(event.code==='KeyD'||event.code==='ArrowRight')input.right=false;if(event.code==='KeyJ')input.attack=false;});
 for(const button of document.querySelectorAll('[data-hold],[data-action]')){
- button.addEventListener('pointerdown',e=>{e.preventDefault();if(!battle||battle.paused||battle.finished)return;button.setPointerCapture(e.pointerId);unlockAudio();if(button.dataset.hold)input[button.dataset.hold]=true;else{battle.action(button.dataset.action);if(button.dataset.action==='attack')input.attack=true;}});
- const release=()=>{if(button.dataset.hold)input[button.dataset.hold]=false;if(button.dataset.action==='attack')input.attack=false;};
+ const pointers=new Set();
+ button.addEventListener('pointerdown',e=>{e.preventDefault();if(!battle||battle.paused||battle.finished)return;pointers.add(e.pointerId);button.setPointerCapture(e.pointerId);unlockAudio();if(button.dataset.hold)input[button.dataset.hold]=true;else{battle.action(button.dataset.action);if(button.dataset.action==='attack')input.attack=true;}if(navigator.vibrate)navigator.vibrate(8);});
+ const release=e=>{pointers.delete(e.pointerId);if(pointers.size)return;if(button.dataset.hold)input[button.dataset.hold]=false;if(button.dataset.action==='attack')input.attack=false;};
  button.addEventListener('pointerup',release);button.addEventListener('pointercancel',release);button.addEventListener('lostpointercapture',release);
+ // Keyboard and assistive-technology click activation does not generate a pointerdown.
+ button.addEventListener('click',e=>{if(e.detail===0&&battle)battle.action(button.dataset.action);});
+ button.addEventListener('contextmenu',e=>e.preventDefault());
 }
-window.addEventListener('blur',()=>{if(battle&&!battle.finished)pause(true);});document.addEventListener('visibilitychange',()=>{if(document.hidden&&battle&&!battle.finished)pause(true);});
-window.addEventListener('resize',()=>{renderer?.resize();});
+window.addEventListener('blur',()=>{if(battle&&!battle.finished&&!enteringDisplay)pause(true);});document.addEventListener('visibilitychange',()=>{if(document.hidden&&battle&&!battle.finished)pause(true);});
+function isMobileLayout(){return (Math.min(innerWidth,innerHeight)<=600&&Math.max(innerWidth,innerHeight)<=1100) || (matchMedia('(pointer:coarse)').matches&&Math.min(innerWidth,innerHeight)<=900);}
+function syncBattleLayout(){
+ if(!battle)return;
+ const width=window.visualViewport?.width||innerWidth,height=window.visualViewport?.height||innerHeight;
+ const mobile=isMobileLayout(),view=battleViewport(width,height,mobile);
+ document.body.classList.toggle('battle-mobile',mobile);document.body.classList.toggle('battle-rotated',view.rotated);
+ $('playScreen').style.setProperty('--battle-width',`${view.width}px`);$('playScreen').style.setProperty('--battle-height',`${view.height}px`);
+ requestAnimationFrame(()=>renderer?.resize());
+}
+async function enterDisplay(){
+ syncBattleLayout();if(!isMobileLayout()||!matchMedia('(pointer:coarse)').matches)return;enteringDisplay=true;
+ try{await requestBattleLandscape(document.documentElement);}finally{enteringDisplay=false;syncBattleLayout();}
+}
+function releaseDisplay(){
+ try{screen.orientation?.unlock?.();}catch{}
+ try{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});}catch{}
+}
+window.addEventListener('resize',syncBattleLayout);window.visualViewport?.addEventListener('resize',syncBattleLayout);
+window.addEventListener('orientationchange',()=>{if(battle){input.left=input.right=input.attack=false;syncBattleLayout();}});
+document.addEventListener('fullscreenchange',()=>{syncBattleLayout();});
+$('fullscreenButton').addEventListener('click',()=>{enteringDisplay=true;requestBattleLandscape(document.documentElement).finally(()=>{enteringDisplay=false;syncBattleLayout();});});
+const skillIcons=['炼','墨','△','叶','羽','◎'];
+function renderAbilityIntro(container,t){
+ const baseDescriptions={field:'在前方生成2.6秒反应场，每0.4秒造成25点范围伤害。',ink:'发射可穿透敌群的墨刃，命中造成45点伤害。',prism:'向三个方向发射光刃，每枚命中造成29点伤害。',vine:'立即恢复18点生命，并用藤蔓限制范围内敌人。',feather:'召唤5枚追踪飞羽，每枚造成22点伤害。',gravity:'持续2.8秒牵引范围内的敌人，并周期造成伤害。'};
+ const rows=[['E',t.skill,'冷却 5秒',baseDescriptions[t.kind]+(mode==='runner'?' 跑酷中额外清除前方障碍并获得0.8秒保护。':'')],['R',t.skill2,`冷却 ${t.skill2Cd}秒`,t.desc2],['Q',t.ult,'消耗 100能量',`对敌群造成170点伤害，短暂无敌并清除敌方弹幕${t.id==='zhi'?'，额外恢复35点生命':''}；跑酷中清除附近障碍。`],['K','闪避冲刺','冷却 1.3秒','冲刺期间躲避伤害；跑酷中可击碎接触到的障碍。']];
+ container.replaceChildren(...rows.map(([key,name,cd,desc])=>{const row=document.createElement('article');row.className='ability-intro';row.innerHTML=`<kbd>${key}</kbd><div><h4>${name}<small>${cd}</small></h4><p>${desc}</p></div>`;return row;}));
+}
+function configureAbilityIcons(){
+ const t=TEACHERS[selected];
+ for(const button of document.querySelectorAll('[data-action]')){
+  const a=button.dataset.action,label=a==='skill'?t.skill:a==='skill2'?t.skill2:a==='ult'?t.ult:({dash:'闪避冲刺',jump:'双段跳',attack:mode==='fighter'?'普攻':'射击'})[a];
+  button.dataset.label=label;button.querySelector('.action-caption').textContent=label;
+  if(a==='skill')button.querySelector('.action-icon').textContent=skillIcons[selected];if(a==='skill2')button.querySelector('.action-icon').textContent=t.icon2;
+  button.style.setProperty('--ability-color',t.color);button.title=`${label} · ${a==='skill'?'5秒冷却':a==='skill2'?t.skill2Cd+'秒冷却':a==='ult'?'100能量':'点击释放'}`;
+ }
+}
+$('skillHelpButton').addEventListener('click',()=>{
+ if(!battle)return;skillHelpWasPaused=battle.paused;input.left=input.right=input.attack=false;battle.paused=true;
+ $('skillDialogTitle').textContent=`${battle.teacher.name} · 技能介绍`;renderAbilityIntro($('battleAbilities'),battle.teacher);$('skillDialog').showModal();
+});
+$('skillDialog').addEventListener('close',()=>{if(battle&&!battle.finished){battle.paused=skillHelpWasPaused;$('pausePanel').hidden=!battle.paused;$('pauseButton').textContent=battle.paused?'继续 ▶':'暂停 Ⅱ';last=performance.now();}});
 function updateAudioButton(){$('audioToggle').textContent=`音效 ${soundOn?'开':'关'}`;$('audioToggle').setAttribute('aria-pressed',String(soundOn));}
 function unlockAudio(){if(!soundOn)return;try{audio ||= new(window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume().catch(()=>{});}catch{}}
 function sound(type){

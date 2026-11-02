@@ -19,6 +19,10 @@ export class Renderer {
    this.character(b.character,p.x,p.y,p.dir,b.time,p.onGround?Math.abs(p.vx):0,p.attack>0);
   }
   if(b.shield>0){c.save();c.strokeStyle=b.teacher.color;c.lineWidth=2;c.globalAlpha=.5;this.glow(b.teacher.color,20);c.beginPath();c.ellipse(p.x,p.y-83,57,102,0,0,TAU);c.stroke();c.restore();}
+  if(p.haste>0||p.slow>0||p.regen>0){
+   c.save();c.globalAlpha=.6;c.strokeStyle=b.teacher.color;this.glow(b.teacher.color,18);c.lineWidth=2;c.beginPath();c.ellipse(p.x,p.y-75,60+Math.sin(b.time*7)*5,98,0,0,TAU);c.stroke();c.font='12px system-ui';c.textAlign='center';c.fillStyle=b.teacher.color;
+   const label=p.haste>0?`疾风 ${p.haste.toFixed(1)}s`:p.slow>0?`时缓 ${p.slow.toFixed(1)}s`:`共生 ${p.regen.toFixed(1)}s`;c.fillText(label,p.x,p.y-220);c.restore();
+  }
   for(const s of b.slashes)this.slash(s);
   for(const bullet of b.bullets)this.bullet(bullet,b);
   if(b.particles.length&&!this.reduced)for(const a of b.particles){c.globalAlpha=Math.min(1,a.life*2);c.fillStyle=a.color;c.beginPath();c.arc(a.x,a.y,a.r,0,TAU);c.fill();}
