@@ -257,7 +257,14 @@ function abilityState(battle,action){
 const TAU=Math.PI*2;
 class Renderer {
  constructor(canvas,atlas){this.canvas=canvas;this.c=canvas.getContext('2d');this.atlas=atlas;this.width=W;this.height=H;this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;this.resize();}
- resize(){const r=this.canvas.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);this.canvas.width=Math.round(r.width*d);this.canvas.height=Math.round(r.height*d);this.width=r.width*d;this.height=r.height*d;}
+ resize(){
+  // clientWidth/Height are local CSS dimensions; a rotated DOMRect swaps them.
+  const size=canvasBackingSize(this.canvas.clientWidth,this.canvas.clientHeight,globalThis.devicePixelRatio||1);
+  if(!size)return;
+  if(this.canvas.width!==size.width)this.canvas.width=size.width;
+  if(this.canvas.height!==size.height)this.canvas.height=size.height;
+  this.width=size.width;this.height=size.height;
+ }
  begin(b){const c=this.c;this.viewW=this.width/this.height<1.5?960:W;this.cameraX=Math.max(0,Math.min(W-this.viewW,b.player.x-this.viewW*.4));c.setTransform(1,0,0,1,0,0);c.fillStyle='#0a1324';c.fillRect(0,0,this.width,this.height);const s=Math.min(this.width/this.viewW,this.height/H);c.setTransform(s,0,0,s,(this.width-this.viewW*s)/2-this.cameraX*s,(this.height-H*s)/2);}
  glow(color,blur=15){this.c.shadowColor=color;this.c.shadowBlur=this.reduced?0:blur;}
  line(x,y,x2,y2,color,width=1){const c=this.c;c.strokeStyle=color;c.lineWidth=width;c.beginPath();c.moveTo(x,y);c.lineTo(x2,y2);c.stroke();}
@@ -381,6 +388,36 @@ function battleViewport(width,height,mobile){
  const rotated=mobile&&height>width;
  return {rotated,width:rotated?height:width,height:rotated?width:height};
 }
+// A zoomed visual viewport must not change the game's layout dimensions.
+function layoutViewport(width,height,visual){
+ const normalScale=!visual||Math.abs((visual.scale||1)-1)<.02;
+ return {
+  width:normalScale&&visual?.width>0?Math.min(width,visual.width):width,
+  height:normalScale&&visual?.height>0?Math.min(height,visual.height):height
+ };
+}
+function canvasBackingSize(width,height,pixelRatio=1){
+ if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0)return null;
+ const ratio=Math.min(2,Math.max(1,Number.isFinite(pixelRatio)?pixelRatio:1));
+ return {width:Math.max(1,Math.round(width*ratio)),height:Math.max(1,Math.round(height*ratio))};
+}
+function installBattleGestureGuard(surface,isActive){
+ let previousTap=null;
+ const listeners=[];
+ const inGame=event=>isActive()&&!event.target?.closest?.('dialog');
+ const block=event=>{if(event.cancelable!==false)event.preventDefault();};
+ const listen=(name,handler)=>{const options={capture:true,passive:false};surface.addEventListener(name,handler,options);listeners.push([name,handler,options]);};
+ for(const name of ['dblclick','gesturestart','gesturechange'])listen(name,event=>{if(inGame(event))block(event);});
+ listen('touchmove',event=>{if(inGame(event)&&event.touches?.length>1)block(event);});
+ listen('touchend',event=>{
+  if(!inGame(event)||event.touches?.length){previousTap=null;return;}
+  const touch=event.changedTouches?.[0];if(!touch)return;
+  const tap={time:event.timeStamp,x:touch.clientX,y:touch.clientY};
+  if(previousTap&&tap.time-previousTap.time>=0&&tap.time-previousTap.time<350&&Math.hypot(tap.x-previousTap.x,tap.y-previousTap.y)<40)block(event);
+  previousTap=tap;
+ });
+ return ()=>{for(const [name,handler,options] of listeners)surface.removeEventListener(name,handler,options);};
+}
 async function requestBattleLandscape(element,screenObject=globalThis.screen){
  let fullscreen=false,locked=false;
  try{if(!document.fullscreenElement&&element.requestFullscreen){await element.requestFullscreen({navigationUI:'hide'});fullscreen=true;}else fullscreen=!!document.fullscreenElement;}catch{}
@@ -485,7 +522,7 @@ window.addEventListener('blur',()=>{if(battle&&!battle.finished&&!enteringDispla
 function isMobileLayout(){return (Math.min(innerWidth,innerHeight)<=600&&Math.max(innerWidth,innerHeight)<=1100) || (matchMedia('(pointer:coarse)').matches&&Math.min(innerWidth,innerHeight)<=900);}
 function syncBattleLayout(){
  if(!battle)return;
- const width=window.visualViewport?.width||innerWidth,height=window.visualViewport?.height||innerHeight;
+ const {width,height}=layoutViewport(document.documentElement.clientWidth||innerWidth,document.documentElement.clientHeight||innerHeight,window.visualViewport);
  const mobile=isMobileLayout(),view=battleViewport(width,height,mobile);
  document.body.classList.toggle('battle-mobile',mobile);document.body.classList.toggle('battle-rotated',view.rotated);
  $('playScreen').style.setProperty('--battle-width',`${view.width}px`);$('playScreen').style.setProperty('--battle-height',`${view.height}px`);
@@ -500,6 +537,9 @@ function releaseDisplay(){
  try{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});}catch{}
 }
 window.addEventListener('resize',syncBattleLayout);window.visualViewport?.addEventListener('resize',syncBattleLayout);
+// Container changes (including entering/exiting fullscreen) may settle after resize.
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(()=>renderer?.resize()).observe(canvas);
+installBattleGestureGuard($('playScreen'),()=>!!battle&&!$('playScreen').hidden);
 window.addEventListener('orientationchange',()=>{if(battle){input.left=input.right=input.attack=false;syncBattleLayout();}});
 document.addEventListener('fullscreenchange',()=>{syncBattleLayout();});
 $('fullscreenButton').addEventListener('click',()=>{enteringDisplay=true;requestBattleLandscape(document.documentElement).finally(()=>{enteringDisplay=false;syncBattleLayout();});});

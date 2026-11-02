@@ -37,3 +37,12 @@
 方向 API 依据：[ScreenOrientation.lock](https://developer.mozilla.org/en-US/docs/Web/API/ScreenOrientation/lock)、[requestFullscreen](https://developer.mozilla.org/en-US/docs/Web/API/Element/requestFullscreen)。没有修改浏览器或操作系统的旋转设置。
 
 本轮22组动作与手机逻辑测试通过；加上原10组合成测试共32组。另在 Safari 的390×844、844×390手机尺寸预览中检查了页面横屏、技能介绍及冷却。尚未用真实 iPhone/Android 设备验证原生方向锁定。
+
+## 手机比例与双击修复
+
+- 修复竖持手机采用页面横屏时宽高被交换的问题：画布分辨率使用旋转前的自身尺寸，人物与圆形特效保持正确比例。
+- 横竖屏切换、全屏变化和容器尺寸变化后自动重新匹配画布；浏览器缩放不会反复改变游戏布局尺寸。
+- 游戏区域阻止双击、快速重复触摸和 Safari 放大手势；双指操作仍可用于同时移动和释放技能。普通页面和技能说明保留滚动。
+- 已在 Safari 的390×844、844×390和667×375手机尺寸预览中核对画布尺寸，并验证双击攻击事件被拦截、页面缩放保持为1。真实手机触摸手势仍建议真机复核。
+
+在仓库根目录运行 `node --test tests/*.test.mjs`（28组）和 `node tests/engine.test.cjs`（10组）。新增测试覆盖旋转后的画布比例、缩放稳定性、快速双击、Safari手势拦截与多指操作不被吞掉。

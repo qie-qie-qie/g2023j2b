@@ -1,8 +1,16 @@
 import {W,H,FLOOR,TEACHERS} from './combat-model.mjs';
+import {canvasBackingSize} from './mobile-layout.mjs';
 const TAU=Math.PI*2;
 export class Renderer {
  constructor(canvas,atlas){this.canvas=canvas;this.c=canvas.getContext('2d');this.atlas=atlas;this.width=W;this.height=H;this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;this.resize();}
- resize(){const r=this.canvas.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);this.canvas.width=Math.round(r.width*d);this.canvas.height=Math.round(r.height*d);this.width=r.width*d;this.height=r.height*d;}
+ resize(){
+  // clientWidth/Height are local CSS dimensions; a rotated DOMRect swaps them.
+  const size=canvasBackingSize(this.canvas.clientWidth,this.canvas.clientHeight,globalThis.devicePixelRatio||1);
+  if(!size)return;
+  if(this.canvas.width!==size.width)this.canvas.width=size.width;
+  if(this.canvas.height!==size.height)this.canvas.height=size.height;
+  this.width=size.width;this.height=size.height;
+ }
  begin(b){const c=this.c;this.viewW=this.width/this.height<1.5?960:W;this.cameraX=Math.max(0,Math.min(W-this.viewW,b.player.x-this.viewW*.4));c.setTransform(1,0,0,1,0,0);c.fillStyle='#0a1324';c.fillRect(0,0,this.width,this.height);const s=Math.min(this.width/this.viewW,this.height/H);c.setTransform(s,0,0,s,(this.width-this.viewW*s)/2-this.cameraX*s,(this.height-H*s)/2);}
  glow(color,blur=15){this.c.shadowColor=color;this.c.shadowBlur=this.reduced?0:blur;}
  line(x,y,x2,y2,color,width=1){const c=this.c;c.strokeStyle=color;c.lineWidth=width;c.beginPath();c.moveTo(x,y);c.lineTo(x2,y2);c.stroke();}

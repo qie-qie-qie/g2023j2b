@@ -1,6 +1,6 @@
 import {Battle,TEACHERS,abilityState} from './combat-model.mjs';
 import {Renderer} from './battle-renderer.mjs';
-import {battleViewport,requestBattleLandscape} from './mobile-layout.mjs';
+import {battleViewport,requestBattleLandscape,layoutViewport,installBattleGestureGuard} from './mobile-layout.mjs';
 const $=id=>document.getElementById(id);
 const atlas=new Image();atlas.src='teachers-atlas.png';
 const canvas=$('actionCanvas');let renderer=null,battle=null,mode='fighter',selected=0,last=0,noticeEnd=0,gameRAF=0,soundOn=false,audio=null,enteringDisplay=false,skillHelpWasPaused=false;
@@ -98,7 +98,7 @@ window.addEventListener('blur',()=>{if(battle&&!battle.finished&&!enteringDispla
 function isMobileLayout(){return (Math.min(innerWidth,innerHeight)<=600&&Math.max(innerWidth,innerHeight)<=1100) || (matchMedia('(pointer:coarse)').matches&&Math.min(innerWidth,innerHeight)<=900);}
 function syncBattleLayout(){
  if(!battle)return;
- const width=window.visualViewport?.width||innerWidth,height=window.visualViewport?.height||innerHeight;
+ const {width,height}=layoutViewport(document.documentElement.clientWidth||innerWidth,document.documentElement.clientHeight||innerHeight,window.visualViewport);
  const mobile=isMobileLayout(),view=battleViewport(width,height,mobile);
  document.body.classList.toggle('battle-mobile',mobile);document.body.classList.toggle('battle-rotated',view.rotated);
  $('playScreen').style.setProperty('--battle-width',`${view.width}px`);$('playScreen').style.setProperty('--battle-height',`${view.height}px`);
@@ -113,6 +113,9 @@ function releaseDisplay(){
  try{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});}catch{}
 }
 window.addEventListener('resize',syncBattleLayout);window.visualViewport?.addEventListener('resize',syncBattleLayout);
+// Container changes (including entering/exiting fullscreen) may settle after resize.
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(()=>renderer?.resize()).observe(canvas);
+installBattleGestureGuard($('playScreen'),()=>!!battle&&!$('playScreen').hidden);
 window.addEventListener('orientationchange',()=>{if(battle){input.left=input.right=input.attack=false;syncBattleLayout();}});
 document.addEventListener('fullscreenchange',()=>{syncBattleLayout();});
 $('fullscreenButton').addEventListener('click',()=>{enteringDisplay=true;requestBattleLandscape(document.documentElement).finally(()=>{enteringDisplay=false;syncBattleLayout();});});
